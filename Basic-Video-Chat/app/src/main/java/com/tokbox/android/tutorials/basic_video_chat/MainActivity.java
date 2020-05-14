@@ -3,8 +3,10 @@ package com.tokbox.android.tutorials.basic_video_chat;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Color;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.widget.Button;
@@ -18,6 +20,8 @@ import com.opentok.android.Stream;
 import com.tokbox.android.tutorials.basicvideochat.R;
 
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.Vector;
 
 import pub.devrel.easypermissions.AfterPermissionGranted;
@@ -27,6 +31,9 @@ import pub.devrel.easypermissions.EasyPermissions;
 
 public class MainActivity extends Activity
                             implements EasyPermissions.PermissionCallbacks, PublisherKit.PublisherListener {
+
+    private Timer timer = new Timer();
+    private static int timerCounter;
 
     private static final String LOG_TAG = SecondActivity.class.getSimpleName();
 
@@ -40,6 +47,8 @@ public class MainActivity extends Activity
     private FrameLayout mPublisherViewContainer;
     private Button mVideoChatButton;
 
+    private static final boolean enablePublisher = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -48,7 +57,11 @@ public class MainActivity extends Activity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mPublisherViewContainer = (FrameLayout)findViewById(R.id.second_publisher);
+        timer.schedule(new MyTimerTask(), 0, 500);
+
+        if(enablePublisher) {
+            mPublisherViewContainer = (FrameLayout) findViewById(R.id.second_publisher);
+        }
 
         mVideoChatButton = (Button)findViewById(R.id.video_chat);
         mVideoChatButton.setOnClickListener(view -> goNxtScreen());
@@ -65,7 +78,9 @@ public class MainActivity extends Activity
 
         super.onPause();
 
-        unpublish();
+        if(enablePublisher) {
+            unpublish();
+        }
         load();
     }
 
@@ -76,7 +91,9 @@ public class MainActivity extends Activity
 
         super.onResume();
 
-        publish();
+        if(enablePublisher) {
+            publish();
+        }
     }
 
     @Override
@@ -172,13 +189,45 @@ public class MainActivity extends Activity
                 Vector v = new Vector();
                 while (i > 0)
                 {
-                    byte b[] = new byte[i];
-                    v.add(b);
                     Runtime rt = Runtime.getRuntime();
-                    System.out.println( "free memory: " + rt.freeMemory() );
+                    long freeMemory = rt.freeMemory();
+                    System.out.println( "free memory: " + freeMemory);
+                    if(freeMemory > 64000)
+                    {
+                        byte b[] = new byte[i];
+                        v.add(b);
+                    }
                 }
             }
         };
         thread.start();
+    }
+
+    private class MyTimerTask extends TimerTask {
+
+        @Override
+        public void run() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    timerCounter++;
+                    int color =0;
+                    switch (timerCounter % 3){
+                        case 0:
+                            color = Color.RED;
+                            break;
+                        case 1:
+                            color = Color.GREEN;
+                            break;
+                        case 2:
+                            color = Color.BLUE;
+                            break;
+                    }
+
+
+                    mVideoChatButton.setBackgroundColor(color);
+                }
+            });
+        }
     }
 }
